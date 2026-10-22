@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MacEwan Parking Forecaster</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#E6E9EC;--card:#fff;--ink:#1F2A33;--mute:#5B6872;--line:#C9D0D6;--paint:#F2B90F;--g:#2E7D4F;--y:#F2B90F;--r:#C8372D;--hd:'Barlow Condensed','Arial Narrow',sans-serif;--bd:'Barlow',system-ui,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--bd)}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px 48px}
+header{padding:22px 0 14px;border-bottom:4px dashed var(--paint);margin-bottom:16px}
+h1{font:700 clamp(30px,7vw,48px)/1 var(--hd);margin:0 0 6px}
+h2{font:700 24px/1.1 var(--hd);margin:0 0 10px}
+header p{margin:0;color:var(--mute)}
+.bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+label{display:block;font-size:14px;font-weight:600;margin-bottom:3px}
+select,input{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
+button{font:600 16px var(--bd);padding:10px 16px;border-radius:4px;border:2px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+button.ghost{background:#fff;color:var(--ink)}
+:focus-visible{outline:3px solid #1D6FD6;outline-offset:2px}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{background:#fff;color:var(--ink);border-color:var(--line)}
+.tabs button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:18px;margin-bottom:14px}
+.big{font:700 clamp(56px,16vw,96px)/.9 var(--hd)}
+.row{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+.mute{color:var(--mute);font-size:14px}
+.badge{display:inline-block;padding:7px 12px;border-radius:4px;font-weight:600;background:var(--vc);color:var(--vt)}
+.meter{position:relative;height:16px;background:#E3E7EA;border-radius:3px;margin:14px 0 4px}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--vc);border-radius:3px}
+.meter b{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink)}
+.ticks{position:relative;height:16px;font-size:12px;color:var(--mute)}
+.ticks span{position:absolute;transform:translateX(-50%)}
+.spots{display:grid;grid-template-columns:repeat(auto-fill,minmax(8px,1fr));gap:2px;margin-top:14px}
+.spots span{height:14px;border-radius:2px;background:var(--ink)}
+.spots span.free{background:#fff;border:2px solid var(--vc)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px}
+.stat{border:1px solid var(--line);border-radius:4px;padding:10px}
+.stat strong{display:block;font:700 30px/1.1 var(--hd)}
+.note{border-left:5px solid var(--paint);padding:8px 12px;background:#FBF4DA;margin:10px 0}
+.empty{color:var(--mute);margin:0}
+svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--mute);margin-top:6px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.caps{display:grid;gap:8px;max-height:420px;overflow-y:auto;padding-right:4px}
+[hidden]{display:none!important}
+table{width:100%;border-collapse:collapse;min-width:520px}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:14px}
+.peak{display:grid;grid-template-columns:150px 1fr 90px;gap:10px;align-items:center;padding:4px 8px;font-size:14px}.peak.hot{background:#FBE3E0;border-left:5px solid var(--r)}
+fieldset.choices{border:0;padding:0;margin:0 0 8px}
+.choices legend{font-size:14px;font-weight:600;margin-bottom:8px;padding:0}
+#choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+#choices label{position:relative;margin:0;font-weight:600;cursor:pointer}
+#choices input{position:absolute;opacity:0;width:100%;height:100%;inset:0;margin:0;cursor:pointer}
+#choices span{display:block;text-align:center;padding:12px 10px;border:2px solid var(--line);border-radius:4px;background:#fff;min-height:48px}
+#choices input:checked+span{background:var(--ink);color:#fff;border-color:var(--ink)}
+#choices input:focus-visible+span{outline:3px solid #1D6FD6;outline-offset:2px}
+footer{margin-top:20px;font-size:13px;color:var(--mute)}
+@media (prefers-reduced-motion:no-preference){.meter i{transition:width .4s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>MacEwan Parking Forecaster</h1><p>City Centre Campus, Edmonton. Pick a lot, day and arrival time to see how many spots to expect.</p></header>
+
+<div class="bar">
+  <div><label for="lot">Parking lot</label><select id="lot"></select></div>
+  <div><label for="day">Day</label><select id="day"></select></div>
+  <div><label for="win">Arrival window</label><select id="win"></select></div>
+</div>
+<div class="tabs" role="group" aria-label="Views">
+  <button data-tab="comm" aria-pressed="true">Find parking</button>
+  <button data-tab="ops" aria-pressed="false">Operations</button>
+  <button data-tab="log" aria-pressed="false">Log actual</button>
+</div>
+
+<section id="t-comm"><div class="card" id="comm" aria-live="polite"></div></section>
+
+<section id="t-ops" hidden>
+  <div class="card"><h2>All lots: forecast and latest count</h2><div id="overview"></div></div>
+  <div class="card"><h2>Campus-wide peak hours</h2><div id="peaks"></div></div>
+  <div class="card"><h2>Forecast accuracy for this lot, day and time</h2>
+    <div class="stats" id="metrics"></div><div id="opt"></div>
+    <div id="chart"></div>
+    <div class="legend"><span>━ Actual</span><span style="color:#9A6F00">╍ Forecast</span><span>○ Next forecast</span></div>
+  </div>
+  <div class="two">
+    <div class="card"><h2>Settings</h2>
+      <label for="method">Forecast method</label><select id="method"><option value="SES">Single exponential smoothing</option><option value="SMA">3-period moving average</option></select>
+      <label for="alpha" style="margin-top:8px">Smoothing α: <output id="aOut"></output></label>
+      <input id="alpha" type="range" min="0.1" max="0.9" step="0.05">
+      <p class="mute">Higher α follows recent counts more closely. Lower α smooths out noise.</p>
+      <h2 style="margin-top:16px">Lot capacities (estimates)</h2>
+      <p class="mute">MacEwan doesn't publish stall counts, so these are estimates. Edit them to match the real numbers.</p>
+      <div class="caps" id="caps"></div>
+      <p style="margin-top:14px"><button class="ghost" id="export">Download log CSV</button> <button class="ghost" id="reset">Reset demo data</button> <button class="ghost" id="clear">Clear all history</button></p>
+    </div>
+    <div class="card"><h2>Check a forecast</h2>
+      <p class="mute">Enter two numbers to see how the formula works. Uses the α in Settings.</p>
+      <label for="cF">Previous forecast (Ft-1)</label><input id="cF" type="number" value="120">
+      <label for="cA" style="margin-top:8px">Previous actual (At-1)</label><input id="cA" type="number" value="140">
+      <label for="cC" style="margin-top:8px">Total capacity</label><input id="cC" type="number" value="150">
+      <div id="calc" style="margin-top:12px"></div>
+    </div>
+  </div>
+</section>
+
+<section id="t-log" hidden>
+  <div class="card"><h2>Log what you see</h2>
+    <p class="mute">Counts apply to the lot, day and window picked above. An estimate is fine. Each one makes the next forecast better.</p>
+    <fieldset class="choices"><legend>About how many open spots do you see right now?</legend>
+      <div id="choices"></div>
+    </fieldset>
+    <p><label style="font-weight:400"><input id="out" type="checkbox" style="width:auto"> Non-standard day (holiday or closure). Leave this count out of forecasts.</label></p>
+    <p><button id="save">Save actual</button></p>
+    <div id="logOut" aria-live="polite"></div>
+  </div>
+</section>
+<footer>Unofficial tool, not run by MacEwan University. Lot names and locations come from MacEwan's parking pages. Until you log real counts, forecasts use made-up demo data, and capacities and walk times are estimates. For official info and rates, see macewan.ca/parking.</footer>
+</div>
+
+<script>
+/* Lots from MacEwan's Parking Rates page. cap = estimated stalls; x,y = rough map position (blocks) used for walk-time estimates. */
+const LOTS=[
+{id:'P107',name:'107 Street Underground Parkade',type:'Parkade',zone:'Below Buildings 6 and 7',cap:450,x:2,y:.2},
+{id:'PROB',name:'Robbins Underground Parkade',type:'Parkade',zone:'Below Robbins Health Learning Centre',cap:350,x:4.4,y:.4},
+{id:'P110',name:'110 Street Parkade',type:'Parkade',zone:'Accessible from 110 Street',cap:800,x:5,y:0},
+{id:'PALL',name:'Allard Hall Underground Parkade',type:'Parkade',zone:'Below Allard Hall',cap:250,x:6.5,y:.5},
+{id:'S105',name:'105 Street Lot',type:'Surface lot',zone:'105 Ave, behind Building 5',cap:80,x:0,y:1},
+{id:'S106N',name:'106 Street North Lot',type:'Surface lot',zone:'105 Ave, behind and next to Building 5',cap:90,x:1,y:1},
+{id:'S106S',name:'106 Street South Lot',type:'Surface lot',zone:'104 Ave, between Buildings 5 and 6',cap:60,x:1,y:0},
+{id:'S107N',name:'107 Street North Lot',type:'Surface lot',zone:'Behind Building 7',cap:100,x:2,y:1},
+{id:'S107S',name:'107 Street South Lot',type:'Surface lot',zone:'104 Ave and 107 St, Clock Tower entrance',cap:70,x:2,y:0},
+{id:'S108N',name:'108 Street North Lot',type:'Surface lot',zone:'Behind Sport & Wellness',cap:120,x:3,y:1},
+{id:'S10542',name:'10542 108 Street Lot',type:'Surface lot',zone:'10542 108 Street',cap:50,x:3,y:1.3},
+{id:'SKW',name:'kihêw waciston Lot',type:'Surface lot',zone:'Behind Robbins Health Learning Centre',cap:110,x:4,y:1},
+{id:'S110',name:'110 Street Lot',type:'Surface lot',zone:'Behind Residence and University Service Centre',cap:130,x:5,y:1},
+{id:'S111',name:'111 Street Lot',type:'Surface lot',zone:'Behind Allard Hall, next to Residence',cap:140,x:6,y:1}
+];
+/* Demo-data shape only: popularity factor and overnight floor (residence lots hold parked cars overnight). */
+const SEED={P107:[1,0],PROB:[.95,0],P110:[.9,.12],PALL:[.85,0],S105:[.7,0],S106N:[.9,0],S106S:[1,0],S107N:[.85,0],S107S:[1,0],S108N:[.8,0],S10542:[.6,0],SKW:[.9,0],S110:[.75,.5],S111:[.7,.5]};
+const walk=(a,b)=>{const p=LOTS.find(l=>l.id===a),q=LOTS.find(l=>l.id===b);return Math.max(1,Math.ceil(Math.hypot((p.x-q.x)*100,(p.y-q.y)*90)/80))};
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const hl=h=>(h%12||12)+':00 '+(h%24<12?'AM':'PM');
+const WINS=Array.from({length:24},(_,h)=>hl(h)+' – '+hl(h+1));
+const KEY='macewan-parking-v1',$=s=>document.querySelector(s);
+let S,sel,IDX=null;
+
+function seed(lots){
+  let s=42;const rnd=()=>(s=(s*1664525+1013904223)%4294967296)/4294967296;
+  const prof=[.05,.04,.03,.03,.04,.08,.2,.45,.8,.95,.98,.9,.85,.8,.7,.6,.5,.4,.35,.3,.25,.15,.1,.07];
+  const dayF=[.95,1,1,.97,.8,.25,.12],now=Date.now(),o=[];
+  for(let w=6;w>=1;w--)for(let d=0;d<7;d++)for(let t=0;t<24;t++)for(const l of lots){
+    const [pop,fl]=SEED[l.id]||[.8,0],b=l.cap*Math.max(prof[t]*dayF[d]*pop,fl*(d>=5?1:.9));
+    o.push({lot:l.id,day:d,win:t,actual:Math.round(Math.min(l.cap,Math.max(0,b*(1+(rnd()-.5)*.1)))),ts:now-w*6048e5+d*864e5+t*36e5});
+  }
+  return o;
+}
+function load(){
+  try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+  if(!S||!S.obs)S={lots:LOTS.map(l=>({...l})),alpha:.3,method:'SES',n:3,obs:seed(LOTS)};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const lotOf=id=>S.lots.find(l=>l.id===id);
+function series(lot,day,win){
+  if(!IDX){IDX=new Map();S.obs.forEach(o=>{const k=o.lot+'|'+o.day+'|'+o.win;if(!IDX.has(k))IDX.set(k,[]);IDX.get(k).push(o)});IDX.forEach(a=>a.sort((x,y)=>x.ts-y.ts))}
+  return IDX.get(lot+'|'+day+'|'+win)||[];
+}
+const usable=a=>a.filter(o=>!o.out);
+/* SES: Ft = Ft-1 + a(At-1 - Ft-1); first count seeds the forecast. SMA: mean of last n counts. Non-standard days are skipped. */
+function ses(arr,a,m=S.method){
+  arr=usable(arr);const rows=[];
+  if(m==='SMA'){
+    const avg=w=>w.length?w.reduce((s,x)=>s+x.actual,0)/w.length:null;
+    arr.forEach((o,i)=>{const F=avg(arr.slice(Math.max(0,i-S.n),i));rows.push({o,F,e:F===null?null:o.actual-F})});
+    return{rows,next:avg(arr.slice(-S.n))};
+  }
+  let F=null;
+  arr.forEach((o,i)=>{
+    if(i===0){F=o.actual;rows.push({o,F:null,e:null})}else rows.push({o,F,e:o.actual-F});
+    F=F+a*(o.actual-F);
+  });
+  return{rows,next:arr.length?F:null};
+}
+function bestAlpha(arr){let b=S.alpha,bm=Infinity;for(let a=.1;a<=.9001;a+=.05){const m=metrics(ses(arr,a,'SES').rows);if(m&&m.mad<bm-1e-9){bm=m.mad;b=+a.toFixed(2)}}return b}
+function slot(id,day=sel.day,win=sel.win){
+  const lot=lotOf(id),F=ses(series(id,day,win),S.alpha).next;
+  if(F===null)return null;
+  return{lot,F,avail:Math.max(0,Math.round(lot.cap-F)),u:F/lot.cap*100};
+}
+function metrics(rows){
+  const r=rows.filter(x=>x.e!==null),n=r.length;if(!n)return null;
+  const mad=r.reduce((s,x)=>s+Math.abs(x.e),0)/n;
+  const mape=r.reduce((s,x)=>s+(x.o.actual?Math.abs(x.e/x.o.actual):0),0)/n*100;
+  return{n,mad,mape,ts:mad?r.reduce((s,x)=>s+x.e,0)/mad:0};
+}
+function madRising(rows){
+  const r=rows.filter(x=>x.e!==null);let sum=0;
+  const m=r.map((x,i)=>(sum+=Math.abs(x.e))/(i+1)),k=m.length;
+  return k>=4&&m[k-1]>m[k-2]&&m[k-2]>m[k-3]&&m[k-3]>m[k-4];
+}
+function verdict(u){
+  return u>=90?{t:'High Risk - Lot Likely Full',c:'var(--r)',tc:'#fff'}
+  :u>=75?{t:'Moderate Risk - Limited Spots',c:'var(--y)',tc:'#1F2A33'}
+  :{t:'Low Risk - Spots Available',c:'var(--g)',tc:'#fff'};
+}
+const f1=x=>x.toFixed(1);
+
+function renderComm(){
+  const sm=slot(sel.lot);
+  if(!sm){$('#comm').innerHTML='<p class="empty">No history for this lot, day and time yet. Open Log actual and save a count to start forecasting.</p>';return}
+  const{lot,F,avail,u}=sm,v=verdict(u),occ=Math.min(lot.cap,Math.round(F));
+  let alt='';
+  if(u>=90){
+    const o=S.lots.filter(l=>l.id!==lot.id).map(l=>slot(l.id)).filter(x=>x&&x.u<75).sort((a,b)=>walk(lot.id,a.lot.id)-walk(lot.id,b.lot.id))[0];
+    alt=o?`<div class="note">${lot.name} is likely full. Recommended alternative: ${o.lot.name} (${o.avail} spots available, about ${walk(lot.id,o.lot.id)} min walk)</div>`
+      :`<div class="note">${lot.name} is likely full and no other lot is forecast as low risk for this time. Try arriving earlier or later.</div>`;
+  }
+  const cmp=S.lots.map(l=>{const x=slot(l.id),sl=l.id===lot.id?' (selected)':'';
+    const sub=`${l.type}, ${l.zone}${l.id===lot.id?'':' · about '+walk(lot.id,l.id)+' min walk from selected lot'}`;
+    if(!x)return`<tr><td>${l.name}${sl}<div class="mute">${sub}</div></td><td colspan="3" class="mute">No history yet</td></tr>`;
+    const vv=verdict(x.u);
+    return`<tr><td>${l.name}${sl}<div class="mute">${sub}</div></td><td>${x.avail}</td><td>${f1(x.u)}%</td><td><span class="badge" style="--vc:${vv.c};--vt:${vv.tc}">${vv.t}</span></td></tr>`}).join('');
+  let cells='';for(let i=0;i<lot.cap;i++)cells+=`<span class="${i<occ?'':'free'}"></span>`;
+  $('#comm').style.setProperty('--vc',v.c);
+  $('#comm').innerHTML=`<h2>${lot.name}, ${DAYS[sel.day]} ${WINS[sel.win]}</h2>
+  <p class="mute" style="margin:-4px 0 10px">${lot.type} · ${lot.zone}</p>
+  <div class="row"><div><div class="big">${avail}</div><div class="mute">spots expected open of ${lot.cap}</div></div>
+  <div><span class="badge" style="--vc:${v.c};--vt:${v.tc}">${v.t}</span><p class="mute" style="margin:6px 0 0">${f1(u)}% full (about ${Math.round(F)} cars)</p></div></div>${alt}
+  <div class="meter" role="progressbar" aria-label="Utilization" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(u,100))}"><i style="width:${Math.min(u,100)}%"></i><b style="left:75%"></b><b style="left:90%"></b></div>
+  <div class="ticks"><span style="left:0">0%</span><span style="left:75%">75%</span><span style="left:90%">90%</span><span style="left:100%">100%</span></div>
+  <div class="spots" aria-hidden="true">${cells}</div>
+  <p class="mute">Filled squares are forecast cars. Outlined squares are open spots.</p>
+  <h2 style="margin-top:18px">Compare lots at this time</h2>
+  <div style="overflow-x:auto"><table><thead><tr><th>Lot</th><th>Open spots</th><th>Full</th><th>Risk</th></tr></thead><tbody>${cmp}</tbody></table></div>`;
+}
+
+function chart(rows,next,cap){
+  const W=640,H=250,p=36,n=rows.length+1,x=i=>p+(W-2*p)*(n>1?i/(n-1):.5),y=v=>H-p-(H-2*p)*Math.min(v,cap)/cap;
+  const pts=rows.map((r,i)=>[x(i),y(r.o.actual)]);
+  const fp=rows.map((r,i)=>r.F===null?null:[x(i),y(r.F)]).filter(Boolean);fp.push([x(rows.length),y(next)]);
+  const path=a=>a.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+','+q[1].toFixed(1)).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Forecast versus actual occupancy">
+  <line x1="${p}" x2="${W-p}" y1="${y(cap*.9)}" y2="${y(cap*.9)}" stroke="#C8372D" stroke-dasharray="4 4"/><text x="${W-p}" y="${y(cap*.9)-4}" text-anchor="end" font-size="11" fill="#C8372D">90%</text>
+  <line x1="${p}" x2="${W-p}" y1="${y(cap*.75)}" y2="${y(cap*.75)}" stroke="#B88A00" stroke-dasharray="4 4"/><text x="${W-p}" y="${y(cap*.75)-4}" text-anchor="end" font-size="11" fill="#7A5B00">75%</text>
+  <line x1="${p}" x2="${p}" y1="${p}" y2="${H-p}" stroke="#C9D0D6"/><line x1="${p}" x2="${W-p}" y1="${H-p}" y2="${H-p}" stroke="#C9D0D6"/>
+  <text x="${p-6}" y="${H-p+4}" text-anchor="end" font-size="11" fill="#5B6872">0</text><text x="${p-6}" y="${p+4}" text-anchor="end" font-size="11" fill="#5B6872">${cap}</text>
+  <path d="${path(fp)}" fill="none" stroke="#B88A00" stroke-width="2.5" stroke-dasharray="6 4"/>
+  <path d="${path(pts)}" fill="none" stroke="#1F2A33" stroke-width="2.5"/>
+  ${pts.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="#1F2A33"/>`).join('')}
+  <circle cx="${x(rows.length)}" cy="${y(next)}" r="5.5" fill="#fff" stroke="#B88A00" stroke-width="2.5"/>
+  <text x="${x(rows.length)}" y="${H-p+16}" text-anchor="middle" font-size="11" fill="#5B6872">next</text>
+  <text x="${x(0)}" y="${H-p+16}" text-anchor="middle" font-size="11" fill="#5B6872">oldest</text></svg>`;
+}
+
+function renderOps(){
+  const lot=lotOf(sel.lot),arr=series(sel.lot,sel.day,sel.win),sr=ses(arr,S.alpha),m=metrics(sr.rows);
+  const lotRows=[];
+  DAYS.forEach((_,d)=>WINS.forEach((_,w)=>lotRows.push(...ses(series(sel.lot,d,w),S.alpha).rows)));
+  const lm=metrics(lotRows),st=(l,v)=>`<div class="stat"><span class="mute">${l}</span><strong>${v}</strong></div>`;
+  $('#metrics').innerHTML=m?st('MAD (spots)',f1(m.mad))+st('MAPE',f1(m.mape)+'%')+st('Tracking signal',f1(m.ts))+st('Counts compared',m.n)+(lm?st('Whole lot MAD',f1(lm.mad))+st('Whole lot MAPE',f1(lm.mape)+'%'):''):'<p class="empty">Log at least two counts for this slot to see error metrics.</p>';
+  let opt='';
+  if(m&&Math.abs(m.ts)>4)opt+=`<div class="note">Tracking signal is beyond ±4, so forecasts here are consistently ${m.ts>0?'too low':'too high'}.</div>`;
+  if(S.method==='SES'&&madRising(sr.rows)){const na=bestAlpha(arr);
+    if(Math.abs(na-S.alpha)>.001)opt+=`<div class="note">MAD has risen 3 cycles in a row. For this slot α = ${na.toFixed(2)} gives the lowest MAD (currently ${S.alpha.toFixed(2)}).<button class="ghost" id="applyA" data-a="${na}" style="margin-left:6px;padding:4px 10px">Apply α ${na.toFixed(2)}</button></div>`}
+  $('#opt').innerHTML=opt;
+  if($('#applyA'))$('#applyA').onclick=e=>{S.alpha=+e.target.dataset.a;save();syncAlpha();renderAll()};
+  $('#chart').innerHTML=sr.next===null?'<p class="empty">No history for this slot yet.</p>':chart(sr.rows,(slot(sel.lot)||{F:sr.next}).F,lot.cap);
+}
+function renderOverview(){
+  const pill=u=>`${f1(u)}% full, ${verdict(u).t.split('-')[0].trim()}`,bar=u=>`<div class="meter" style="margin:6px 0"><i style="width:${Math.min(u,100)}%;background:${verdict(u).c}"></i></div>`;
+  const latest={};S.obs.forEach(o=>{if(!latest[o.lot]||o.ts>latest[o.lot].ts)latest[o.lot]=o});
+  $('#overview').innerHTML=`<div style="overflow-x:auto"><table><thead><tr><th>Lot</th><th>Forecast for ${DAYS[sel.day]} ${WINS[sel.win]}</th><th>Latest logged count</th></tr></thead><tbody>`+S.lots.map(l=>{
+    const x=slot(l.id),last=latest[l.id],lu=last?last.actual/l.cap*100:null;
+    return`<tr><td>${l.name}</td><td>${x?pill(x.u)+bar(x.u):'No history'}</td><td>${last?pill(lu)+bar(lu)+`<span class="mute">${DAYS[last.day]} ${WINS[last.win]}</span>`:'None logged'}</td></tr>`}).join('')+'</tbody></table></div>';
+}
+function renderPeaks(){
+  const rows=WINS.map((w,i)=>{let F=0,C=0;S.lots.forEach(l=>{const x=slot(l.id,sel.day,i);if(x){F+=x.F;C+=l.cap}});return{w,u:C?F/C*100:null}}).filter(r=>r.u!==null);
+  const hot=rows.filter(r=>r.u>85);
+  $('#peaks').innerHTML=(hot.length?`<div class="note">Bottleneck on ${DAYS[sel.day]}: ${hot.map(r=>r.w).join(', ')}. Total campus demand is forecast above 85% of capacity.</div>`:`<p class="mute">No hour on ${DAYS[sel.day]} is forecast above 85% of total campus capacity.</p>`)
+   +rows.map(r=>`<div class="peak ${r.u>85?'hot':''}"><span>${r.w}</span><div class="meter" style="margin:0"><i style="width:${Math.min(r.u,100)}%;background:${r.u>85?'var(--r)':'var(--ink)'}"></i></div><span>${f1(r.u)}%${r.u>85?' flagged':''}</span></div>`).join('');
+}
+function renderCalc(){
+  const F=+$('#cF').value,A=+$('#cA').value,C=+$('#cC').value;
+  if(!C){$('#calc').innerHTML='';return}
+  const N=F+S.alpha*(A-F),av=Math.max(0,C-N),u=N/C*100,v=verdict(u);
+  $('#calc').innerHTML=`<p style="margin:0 0 6px">Ft = ${f1(N)} → <strong>${Math.round(av)} spots available</strong> (${f1(u)}% full)</p><span class="badge" style="--vc:${v.c};--vt:${v.tc}">${v.t}</span>`;
+}
+/* Open-spot choices for the log form. Each range is stored as its midpoint. Ranges are clipped to the lot's capacity. */
+function buckets(cap){
+  const b=[{label:'Completely full',open:0}];
+  [[1,2],[3,5],[6,10],[11,25],[26,50],[51,100],[101,200],[201,400],[401,800]].forEach(([lo,hi])=>{
+    hi=Math.min(hi,cap-1);if(lo>hi)return;
+    b.push({label:lo===hi?lo+' spot':lo+'–'+hi+' spots',open:Math.round((lo+hi)/2)});
+  });
+  b.push({label:'Completely empty',open:cap});
+  return b;
+}
+function renderChoices(){
+  const lot=lotOf(sel.lot);
+  $('#choices').innerHTML=buckets(lot.cap).map((b,i)=>`<label><input type="radio" name="spots" value="${b.open}" data-label="${b.label}"><span>${b.label}</span></label>`).join('');
+}
+function renderAll(){renderComm();renderOps();renderOverview();renderPeaks();renderCalc()}
+function syncAlpha(){$('#method').value=S.method;$('#alpha').disabled=S.method==='SMA';$('#alpha').value=S.alpha;$('#aOut').textContent=(+S.alpha).toFixed(2)}
+
+function init(){
+  load();
+  const now=new Date();
+  sel={lot:'P107',day:(now.getDay()+6)%7,win:now.getHours()};
+  const opts=t=>S.lots.filter(l=>l.type===t).map(l=>`<option value="${l.id}">${l.name}</option>`).join('');
+  $('#lot').innerHTML=`<optgroup label="Parkades">${opts('Parkade')}</optgroup><optgroup label="Surface lots">${opts('Surface lot')}</optgroup>`;
+  $('#day').innerHTML=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
+  $('#win').innerHTML=WINS.map((w,i)=>`<option value="${i}">${w}</option>`).join('');
+  $('#lot').value=sel.lot;$('#day').value=sel.day;$('#win').value=sel.win;
+  for(const k of['lot','day','win'])$('#'+k).onchange=e=>{sel[k]=k==='lot'?e.target.value:+e.target.value;if(k==='lot')renderChoices();renderAll()};
+  $('#caps').innerHTML=S.lots.map(l=>`<div><label for="cap-${l.id}">${l.name}</label><input id="cap-${l.id}" type="number" min="1" value="${l.cap}"></div>`).join('');
+  S.lots.forEach(l=>$('#cap-'+l.id).oninput=e=>{const v=+e.target.value;if(v>0){l.cap=v;save();renderChoices();renderAll()}});
+  syncAlpha();
+  $('#method').onchange=e=>{S.method=e.target.value;save();syncAlpha();renderAll()};
+  $('#alpha').oninput=e=>{S.alpha=+e.target.value;save();syncAlpha();renderAll()};
+  ['cF','cA','cC'].forEach(id=>$('#'+id).oninput=renderCalc);
+  document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    ['comm','ops','log'].forEach(t=>$('#t-'+t).hidden=t!==b.dataset.tab)});
+  $('#save').onclick=()=>{
+    const lot=lotOf(sel.lot),pick=document.querySelector('#choices input:checked'),out=$('#logOut');
+    if(!pick){out.innerHTML='<div class="note">Pick the option that best matches how many open spots you see.</div>';return}
+    const open=+pick.value,A=lot.cap-open,flag=$('#out').checked,before=(slot(sel.lot)||{}).F??null;
+    S.obs.push({lot:sel.lot,day:sel.day,win:sel.win,actual:A,out:flag,ts:Date.now()});IDX=null;save();
+    const m=metrics(ses(series(sel.lot,sel.day,sel.win),S.alpha).rows);
+    out.innerHTML=flag?'<div class="note">Saved as a non-standard day. It stays in the log but is left out of forecasts and error metrics.</div>'
+      :before===null?'<div class="note">Saved. This is the first count for this slot, so forecasting starts now.</div>'
+      :`<div class="note">Saved. Forecast showed ${Math.round(lot.cap-before)} open spots, you estimated about ${open}. Error: ${f1(Math.abs(A-before))} spots.${m?` MAD is now ${f1(m.mad)} and MAPE ${f1(m.mape)}%.`:''}</div>`;
+    $('#out').checked=false;renderChoices();renderAll();
+  };
+  $('#export').onclick=()=>{
+    const m=new Map();
+    S.lots.forEach(l=>DAYS.forEach((_,d)=>WINS.forEach((_,w)=>ses(series(l.id,d,w),S.alpha).rows.forEach(r=>m.set(r.o,r)))));
+    const L=['log_id,lot_id,lot_name,day_of_week,time_block,forecast_val,actual_val,abs_error,non_standard_day,recorded_at'];
+    [...S.obs].sort((a,b)=>a.ts-b.ts).forEach((o,i)=>{const r=m.get(o)||{};L.push([1001+i,'LOT_'+o.lot,'"'+lotOf(o.lot).name+'"',DAYS[o.day],'"'+WINS[o.win]+'"',r.F==null?'':r.F.toFixed(1),o.actual,r.e==null?'':Math.abs(r.e).toFixed(1),!!o.out,new Date(o.ts).toISOString()].join(','))});
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([L.join('\n')],{type:'text/csv'}));a.download='macewan_occupancy_log.csv';a.click();
+  };
+  $('#reset').onclick=()=>{if(confirm('Replace all history with the demo data?')){S.obs=seed(S.lots);IDX=null;save();renderAll()}};
+  $('#clear').onclick=()=>{if(confirm('Delete all logged history? Forecasts will be empty until you log new counts.')){S.obs=[];IDX=null;save();renderAll()}};
+  renderChoices();
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
