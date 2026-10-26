@@ -164,7 +164,7 @@ function load(){
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
 /* Shared log storage. Paste your Google Apps Script web app URL here (see setup steps). Leave empty to keep logs only in this browser. */
-const API_URL='';
+const API_URL='https://script.google.com/macros/s/AKfycbwP11CH58kGPFPpmsHqg8YlLdAtT1NWwj0XGdYhBXoC4fe66D2yX95MKYRaMFkofZSZtw/exec';
 const okey=o=>o.ts+'|'+o.lot+'|'+o.day+'|'+o.win;
 function push(o){if(!API_URL)return;fetch(API_URL,{method:'POST',body:JSON.stringify(o)}).catch(()=>{})}
 async function pull(){
