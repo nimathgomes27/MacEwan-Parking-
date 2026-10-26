@@ -162,6 +162,22 @@ function load(){
   if(!S||!S.obs)S={lots:LOTS.map(l=>({...l})),alpha:.3,method:'SES',n:3,obs:seed(LOTS)};
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+/* Shared log storage. Paste your Google Apps Script web app URL here (see setup steps). Leave empty to keep logs only in this browser. */
+const API_URL='';
+const okey=o=>o.ts+'|'+o.lot+'|'+o.day+'|'+o.win;
+function push(o){if(!API_URL)return;fetch(API_URL,{method:'POST',body:JSON.stringify(o)}).catch(()=>{})}
+async function pull(){
+  if(!API_URL)return;
+  try{
+    const rows=await (await fetch(API_URL)).json(),have=new Set(S.obs.map(okey));let add=0;
+    rows.forEach(r=>{
+      const o={lot:String(r.lot),day:+r.day,win:+r.win,actual:+r.actual,out:r.out===true||r.out==='TRUE'||r.out==='true',ts:+r.ts};
+      if(lotOf(o.lot)&&!isNaN(o.actual)&&!have.has(okey(o))){S.obs.push(o);have.add(okey(o));add++}
+    });
+    if(add){IDX=null;save();renderAll()}
+  }catch(e){}
+}
 const lotOf=id=>S.lots.find(l=>l.id===id);
 function series(lot,day,win){
   if(!IDX){IDX=new Map();S.obs.forEach(o=>{const k=o.lot+'|'+o.day+'|'+o.win;if(!IDX.has(k))IDX.set(k,[]);IDX.get(k).push(o)});IDX.forEach(a=>a.sort((x,y)=>x.ts-y.ts))}
@@ -289,12 +305,12 @@ function renderCalc(){
 }
 /* Open-spot choices for the log form. Each range is stored as its midpoint. Ranges are clipped to the lot's capacity. */
 function buckets(cap){
-  const b=[{label:'Completely full',open:0}];
-  [[1,2],[3,5],[6,10],[11,25],[26,50],[51,100],[101,200],[201,400],[401,800]].forEach(([lo,hi])=>{
-    hi=Math.min(hi,cap-1);if(lo>hi)return;
+  const MAX=300,b=[{label:'Completely full',open:0}];
+  [[1,2],[3,5],[6,10],[11,25],[26,50],[51,100],[101,200],[201,300]].forEach(([lo,hi])=>{
+    hi=Math.min(hi,cap-1,MAX);if(lo>hi)return;
     b.push({label:lo===hi?lo+' spot':lo+'–'+hi+' spots',open:Math.round((lo+hi)/2)});
   });
-  b.push({label:'Completely empty',open:cap});
+  if(cap<=MAX)b.push({label:'Completely empty',open:cap});
   return b;
 }
 function renderChoices(){
@@ -327,7 +343,7 @@ function init(){
     const lot=lotOf(sel.lot),pick=document.querySelector('#choices input:checked'),out=$('#logOut');
     if(!pick){out.innerHTML='<div class="note">Pick the option that best matches how many open spots you see.</div>';return}
     const open=+pick.value,A=lot.cap-open,flag=$('#out').checked,before=(slot(sel.lot)||{}).F??null;
-    S.obs.push({lot:sel.lot,day:sel.day,win:sel.win,actual:A,out:flag,ts:Date.now()});IDX=null;save();
+    const ob={lot:sel.lot,day:sel.day,win:sel.win,actual:A,out:flag,ts:Date.now()};S.obs.push(ob);push(ob);IDX=null;save();
     const m=metrics(ses(series(sel.lot,sel.day,sel.win),S.alpha).rows);
     out.innerHTML=flag?'<div class="note">Saved as a non-standard day. It stays in the log but is left out of forecasts and error metrics.</div>'
       :before===null?'<div class="note">Saved. This is the first count for this slot, so forecasting starts now.</div>'
@@ -345,6 +361,7 @@ function init(){
   $('#clear').onclick=()=>{if(confirm('Delete all logged history? Forecasts will be empty until you log new counts.')){S.obs=[];IDX=null;save();renderAll()}};
   renderChoices();
   renderAll();
+  pull();setInterval(pull,120000);
 }
 init();
 </script>
