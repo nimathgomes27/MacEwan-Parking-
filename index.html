@@ -163,14 +163,16 @@ function load(){
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
-/* Shared log storage. Paste your Google Apps Script web app URL here (see setup steps). Leave empty to keep logs only in this browser. */
+/* Shared log storage with Supabase. Paste your Project URL and anon public key below. Leave empty to keep logs only in this browser. */
 const SB_URL='https://eolibblfryatjltcvmqo.supabase.co';
 const SB_KEY='sb_publishable__u2YPUZ4JbXD2pDzBkOq4g_mpU8FJt0';
-function push(o){if(!API_URL)return;fetch(API_URL,{method:'POST',body:JSON.stringify(o)}).catch(()=>{})}
+const SBH=SB_KEY.startsWith('eyJ')?{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}:{apikey:SB_KEY};
+const okey=o=>o.ts+'|'+o.lot+'|'+o.day+'|'+o.win;
+function push(o){if(!SB_URL||!SB_KEY)return;try{fetch(SB_URL.replace(/\/+$/,'')+'/rest/v1/logs',{method:'POST',headers:{...SBH,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(o)}).catch(e=>console.warn('log sync failed',e))}catch(e){console.warn('log sync failed',e)}}
 async function pull(){
-  if(!API_URL)return;
+  if(!SB_URL||!SB_KEY)return;
   try{
-    const rows=await (await fetch(API_URL)).json(),have=new Set(S.obs.map(okey));let add=0;
+    const rows=await (await fetch(SB_URL.replace(/\/+$/,'')+'/rest/v1/logs?select=lot,day,win,actual,out,ts&order=ts.desc&limit=5000',{headers:SBH})).json(),have=new Set(S.obs.map(okey));let add=0;
     rows.forEach(r=>{
       const o={lot:String(r.lot),day:+r.day,win:+r.win,actual:+r.actual,out:r.out===true||r.out==='TRUE'||r.out==='true',ts:+r.ts};
       if(lotOf(o.lot)&&!isNaN(o.actual)&&!have.has(okey(o))){S.obs.push(o);have.add(okey(o));add++}
